@@ -1,42 +1,36 @@
 "use client";
 
-interface Props {
-  answer: string;
-}
+interface Props { answer: string; }
 
 export function JudgeVerdict({ answer }: Props) {
   return (
     <div
       className="border border-[var(--amber-dim)] bg-[var(--bg-2)] rounded-sm animate-fade-slide-up"
       style={{
-        animationDelay: "0.6s",
+        animationDelay: "0.55s",
         opacity: 0,
-        boxShadow: "0 0 30px var(--amber-glow), inset 0 1px 0 rgba(232,160,32,0.08)",
-        "--amber-glow": "rgba(232, 160, 32, 0.08)",
-      } as React.CSSProperties}
+        boxShadow: "0 0 40px rgba(232,160,32,0.07)",
+      }}
     >
-      {/* Header bar */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--amber-dim)]">
-        <div className="w-6 h-6 rounded-sm bg-[var(--amber-glow)] border border-[var(--amber-dim)] flex items-center justify-center">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M6 1L7.5 4.5H11L8.25 6.75L9.25 10.5L6 8.5L2.75 10.5L3.75 6.75L1 4.5H4.5L6 1Z"
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--amber-dim)]">
+        <div className="w-7 h-7 rounded-sm flex items-center justify-center"
+          style={{ background: "rgba(232,160,32,0.1)", border: "1px solid var(--amber-dim)" }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1L8.8 5.2H13L9.6 7.8L10.8 12L7 9.6L3.2 12L4.4 7.8L1 5.2H5.2L7 1Z"
               fill="var(--amber)" />
           </svg>
         </div>
         <div>
-          <div className="text-[11px] font-semibold text-[var(--amber)] tracking-wider uppercase">
-            Final Verdict
-          </div>
-          <div className="text-[9px] text-[var(--text-muted)]">Claude 3.5 Sonnet · Chief Analyst</div>
+          <div className="text-[14px] font-bold text-[var(--amber)] tracking-wide">Final Verdict</div>
+          <div className="text-[11px] text-[var(--text-muted)]">Claude 3.5 Sonnet · Chief Analyst</div>
         </div>
-        <div className="ml-auto text-[9px] text-[var(--amber-dim)] uppercase tracking-widest">
+        <div className="ml-auto text-[11px] text-[var(--amber-dim)] uppercase tracking-widest font-bold">
           SYNTHESIZED
         </div>
       </div>
 
-      {/* Answer */}
-      <div className="px-4 py-4">
-        <p className="text-[12px] text-[var(--text)] leading-relaxed whitespace-pre-wrap font-serif italic">
+      <div className="px-5 py-5">
+        <p className="text-[15px] text-[var(--text)] leading-relaxed whitespace-pre-wrap font-display italic">
           {answer}
         </p>
       </div>

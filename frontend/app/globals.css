@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -12,7 +12,7 @@
   --border-2: #2a2c2e;
   --amber: #e8a020;
   --amber-dim: #a06b10;
-  --amber-glow: rgba(232, 160, 32, 0.12);
+  --amber-glow: rgba(232, 160, 32, 0.1);
   --text: #e8e4dc;
   --text-dim: #7a7570;
   --text-muted: #3a3633;
@@ -20,16 +20,14 @@
 
 * { box-sizing: border-box; }
 
-html {
-  background: var(--bg);
-  color: var(--text);
-}
+html { background: var(--bg); color: var(--text); }
 
 body {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Space Mono', monospace;
   background: var(--bg);
   min-height: 100vh;
   overflow-x: hidden;
+  font-size: 14px;
 }
 
 /* Scanlines */
@@ -38,11 +36,8 @@ body::before {
   position: fixed;
   inset: 0;
   background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.025) 2px,
-    rgba(0,0,0,0.025) 4px
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px
   );
   pointer-events: none;
   z-index: 999;
@@ -54,52 +49,52 @@ body::before {
 ::-webkit-scrollbar-thumb:hover { background: var(--amber-dim); }
 
 @keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
-
 @keyframes pulseAmber {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  50%       { opacity: 0.3; }
 }
-
 @keyframes blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  50%       { opacity: 0; }
 }
-
 @keyframes ticker {
-  0% { transform: translateX(0); }
+  0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
-
 @keyframes spinSlow {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes stagePop {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 .animate-fade-slide-up { animation: fadeSlideUp 0.5s ease forwards; }
 .animate-fade-in       { animation: fadeIn 0.35s ease forwards; }
 .animate-pulse-amber   { animation: pulseAmber 1.4s ease-in-out infinite; }
-.animate-spin-slow     { animation: spinSlow 3s linear infinite; }
+.animate-spin-slow     { animation: spinSlow 1.2s linear infinite; }
+.animate-stage-pop     { animation: stagePop 0.3s ease forwards; }
 
-.font-serif { font-family: 'Instrument Serif', serif; }
-.font-mono  { font-family: 'IBM Plex Mono', monospace; }
+.font-display { font-family: 'Playfair Display', serif; }
+.font-mono    { font-family: 'Space Mono', monospace; }
 
 .cursor-blink::after {
   content: '█';
   color: var(--amber);
   animation: blink 1s step-end infinite;
-  margin-left: 2px;
+  margin-left: 3px;
 }
 
-.ticker-wrap { overflow: hidden; white-space: nowrap; }
-.ticker-content { display: inline-block; animation: ticker 28s linear infinite; }
+.ticker-wrap    { overflow: hidden; white-space: nowrap; }
+.ticker-content { display: inline-block; animation: ticker 32s linear infinite; }
 
 @layer utilities {
   .text-balance { text-wrap: balance; }
