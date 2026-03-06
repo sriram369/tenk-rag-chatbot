@@ -14,8 +14,8 @@
   --amber-dim: #a06b10;
   --amber-glow: rgba(232, 160, 32, 0.1);
   --text: #e8e4dc;
-  --text-dim: #7a7570;
-  --text-muted: #3a3633;
+  --text-dim: #9a948c;
+  --text-muted: #504c48;
 }
 
 * { box-sizing: border-box; }
@@ -27,7 +27,7 @@ body {
   background: var(--bg);
   min-height: 100vh;
   overflow-x: hidden;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 /* Scanlines */

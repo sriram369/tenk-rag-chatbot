@@ -30,7 +30,8 @@ export function JudgeVerdict({ answer }: Props) {
       </div>
 
       <div className="px-5 py-5">
-        <p className="text-[15px] text-[var(--text)] leading-relaxed whitespace-pre-wrap font-display italic">
+        <p className="text-[16px] leading-relaxed whitespace-pre-wrap font-display italic"
+          style={{ color: "var(--amber)" }}>
           {answer}
         </p>
       </div>

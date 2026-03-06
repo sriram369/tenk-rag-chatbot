@@ -1,227 +1,236 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { ChatInput } from "@/components/ChatInput";
-import { DebateView } from "@/components/DebateView";
-import { LiveStatus } from "@/components/LiveStatus";
-import { sendChat } from "@/lib/api";
-import { Message } from "@/lib/types";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
-const TICKER = "GOOGL +2.4%  ·  AMZN +1.8%  ·  MSFT -0.3%  ·  AI DEBATE ACTIVE  ·  10-K FILINGS 2024  ·  RAG ENABLED  ·  4 EXPERTS + 4 AUDIENCE  ·  CLAUDE JUDGE  ·  ";
-
-const MODELS = [
-  {
-    name: "GPT-4o",
-    tag: "OpenAI",
-    color: "#74aa9c",
-    logo: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M8 1.5L14 5v6L8 14.5 2 11V5L8 1.5z" stroke="#74aa9c" strokeWidth="1.2" fill="none"/>
-        <circle cx="8" cy="8" r="2" fill="#74aa9c"/>
-      </svg>
-    ),
-  },
-  {
-    name: "Claude",
-    tag: "Anthropic",
-    color: "#cc8b5a",
-    logo: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M8 2L13 13H3L8 2Z" stroke="#cc8b5a" strokeWidth="1.2" fill="none" strokeLinejoin="round"/>
-        <path d="M5.5 9.5h5" stroke="#cc8b5a" strokeWidth="1.2" strokeLinecap="round"/>
-      </svg>
-    ),
-  },
-  {
-    name: "Gemini 2.0",
-    tag: "Google",
-    color: "#4e90d8",
-    logo: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M8 2L9.5 6.5L14 8L9.5 9.5L8 14L6.5 9.5L2 8L6.5 6.5L8 2Z" stroke="#4e90d8" strokeWidth="1.2" fill="none" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
-  {
-    name: "DeepSeek",
-    tag: "DeepSeek",
-    color: "#9b76d4",
-    logo: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="5.5" stroke="#9b76d4" strokeWidth="1.2"/>
-        <path d="M5.5 8C5.5 6.6 6.6 5.5 8 5.5C9.7 5.5 10.5 6.8 10.5 8" stroke="#9b76d4" strokeWidth="1.2" strokeLinecap="round"/>
-        <circle cx="8" cy="10" r="1" fill="#9b76d4"/>
-      </svg>
-    ),
-  },
+const EXPERTS = [
+  { name: "GPT-4o",            org: "OpenAI",    color: "#74aa9c" },
+  { name: "Claude 3.5 Sonnet", org: "Anthropic", color: "#cc8b5a" },
+  { name: "Gemini 2.0 Flash",  org: "Google",    color: "#4e90d8" },
+  { name: "DeepSeek R1",       org: "DeepSeek",  color: "#9b76d4" },
 ];
 
-const COMPANIES = ["alphabet", "amazon", "microsoft"];
-const COMPANY_META: Record<string, { label: string; color: string }> = {
-  alphabet:  { label: "GOOGL", color: "#4ade80" },
-  amazon:    { label: "AMZN",  color: "#fb923c" },
-  microsoft: { label: "MSFT",  color: "#60a5fa" },
-};
+const AUDIENCE = [
+  { name: "GPT-OSS 120B",  org: "OpenAI" },
+  { name: "Llama 3.3 70B", org: "Meta"   },
+  { name: "Qwen3 235B",    org: "Alibaba"},
+  { name: "Gemma 3 27B",   org: "Google" },
+];
 
-export default function Home() {
-  const [messages, setMessages]     = useState<Message[]>([]);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-  const [selected, setSelected]     = useState<string[]>(COMPANIES);
-  const bottomRef = useRef<HTMLDivElement>(null);
+const STACK = [
+  { step: "01", label: "PDF Parsing",    detail: "3 × 10-K filings extracted locally with PyPDF" },
+  { step: "02", label: "Embedding",      detail: "text-embedding-3-large via OpenRouter, 1,526 vectors" },
+  { step: "03", label: "Vector Storage", detail: "Pinecone (cosine similarity, 3072-dim, us-east-1)" },
+  { step: "04", label: "RAG Retrieval",  detail: "Top-5 chunks per company namespace on each query" },
+  { step: "05", label: "LLM Debate",     detail: "4 experts + 4 audience run in parallel via OpenRouter" },
+  { step: "06", label: "Synthesis",      detail: "Claude 3.5 Sonnet judges experts-only, ignores audience" },
+  { step: "07", label: "Delivery",       detail: "FastAPI on Railway → Next.js 14 on Vercel" },
+];
 
+function Counter({ target, suffix = "" }: { target: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    let start = 0;
+    const step = Math.ceil(target / 40);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { setCount(target); clearInterval(timer); }
+      else setCount(start);
+    }, 30);
+    return () => clearInterval(timer);
+  }, [target]);
+  return <>{count.toLocaleString()}{suffix}</>;
+}
 
-  const toggleCompany = (c: string) => {
-    setSelected((prev) =>
-      prev.includes(c) ? (prev.length > 1 ? prev.filter((x) => x !== c) : prev) : [...prev, c]
-    );
-  };
-
-  const handleSubmit = async (question: string) => {
-    const userMsg: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: question,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await sendChat({ question, companies: selected });
-      setMessages((prev) => [...prev, {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: data.final_answer,
-        response: data,
-        timestamp: new Date(),
-      }]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function AboutPage() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setVisible(true), 100); return () => clearTimeout(t); }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--bg)]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] overflow-x-hidden">
 
-      {/* ── Header ── */}
-      <header className="flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg-2)]">
+      {/* ── Top bar ── */}
+      <div className="border-b border-[var(--border)] bg-[var(--bg-2)] px-6 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-5 h-5 border border-[var(--amber-dim)] rounded-sm flex items-center justify-center">
+            <div className="w-2 h-2 bg-[var(--amber)] rounded-sm animate-pulse-amber" />
+          </div>
+          <span className="font-display italic text-[15px]">10K Intelligence</span>
+        </div>
+        <div className="flex items-center gap-4 text-[11px] text-[var(--text-muted)] uppercase tracking-widest">
+          <a
+            href="https://github.com/sriram369"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[var(--amber)] transition-colors"
+          >
+            github/sriram369
+          </a>
+          <Link href="/chat" className="text-[var(--amber)] hover:text-[var(--text)] transition-colors">
+            Launch Terminal →
+          </Link>
+        </div>
+      </div>
 
-        {/* Top row: title + live badge */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-6 border border-[var(--amber-dim)] rounded-sm flex items-center justify-center">
-              <div className="w-2.5 h-2.5 bg-[var(--amber)] rounded-sm animate-pulse-amber" />
-            </div>
-            <span className="font-display italic text-2xl text-[var(--text)] tracking-tight">
-              10K Intelligence
-            </span>
+      {/* ── Hero ── */}
+      <section className="px-6 pt-20 pb-16 max-w-5xl mx-auto">
+        <div
+          className="transition-all duration-700"
+          style={{ opacity: visible ? 1 : 0, transform: visible ? "none" : "translateY(20px)" }}
+        >
+          <div className="text-[11px] text-[var(--amber)] uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+            <div className="w-8 h-px bg-[var(--amber-dim)]" />
+            Team Four · Annual Report Intelligence
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#4ade80] animate-pulse-amber" />
-            <span className="text-[12px] text-[#4ade80] uppercase tracking-widest font-bold">LIVE</span>
-          </div>
+
+          <h1 className="font-display italic text-5xl sm:text-7xl leading-[1.05] text-[var(--text)] mb-6">
+            Four Analysts.<br />
+            One Judge.<br />
+            <span style={{ color: "var(--amber)" }}>Zero Guessing.</span>
+          </h1>
+
+          <p className="text-[15px] text-[var(--text-dim)] max-w-xl leading-relaxed mb-10">
+            Ask anything about Alphabet, Amazon, or Microsoft&apos;s 2024 annual reports.
+            Four expert AI models debate your question simultaneously. A judge synthesizes
+            the truth. General audience models chime in — but the jury doesn&apos;t listen to them.
+          </p>
+
+          <Link
+            href="/chat"
+            className="inline-flex items-center gap-3 px-6 py-3 border border-[var(--amber-dim)] text-[var(--amber)] text-[13px] uppercase tracking-widest font-bold rounded-sm transition-all duration-200 hover:bg-[var(--amber-glow)] hover:border-[var(--amber)] group"
+            style={{ "--amber-glow": "rgba(232,160,32,0.1)" } as React.CSSProperties}
+          >
+            Start Analyzing
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="transition-transform group-hover:translate-x-1">
+              <path d="M1 7H13M13 7L8 2M13 7L8 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </Link>
         </div>
 
-        {/* Model logos row */}
-        <div className="flex items-center gap-4 px-5 pb-3 border-b border-[var(--border)]">
-          {MODELS.map((m) => (
-            <div key={m.name} className="flex items-center gap-2">
-              {m.logo}
-              <div>
-                <div className="text-[13px] font-bold" style={{ color: m.color }}>{m.name}</div>
-                <div className="text-[10px] text-[var(--text-muted)]">{m.tag}</div>
+        {/* Stats row */}
+        <div
+          className="grid grid-cols-3 gap-0 mt-16 border border-[var(--border)] rounded-sm overflow-hidden transition-all duration-700 delay-300"
+          style={{ opacity: visible ? 1 : 0 }}
+        >
+          {[
+            { n: 1526, suffix: "", label: "Vectors in Pinecone" },
+            { n: 8,    suffix: " LLMs", label: "Running per query" },
+            { n: 3,    suffix: " companies", label: "10-K filings indexed" },
+          ].map((s, i) => (
+            <div key={i} className={`px-6 py-5 bg-[var(--bg-2)] ${i < 2 ? "border-r border-[var(--border)]" : ""}`}>
+              <div className="font-display italic text-3xl text-[var(--amber)] mb-1">
+                <Counter target={s.n} suffix={s.suffix} />
               </div>
+              <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-widest">{s.label}</div>
             </div>
           ))}
-          <div className="ml-auto h-8 w-px bg-[var(--border)]" />
-          {/* Company scope toggles */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Sources:</span>
-            {COMPANIES.map((c) => {
-              const meta = COMPANY_META[c];
-              const active = selected.includes(c);
-              return (
-                <button
-                  key={c}
-                  onClick={() => toggleCompany(c)}
-                  className="text-[12px] px-2.5 py-1 rounded-sm font-bold transition-all duration-150"
-                  style={{
-                    background: active ? `${meta.color}18` : "transparent",
-                    color: active ? meta.color : "var(--text-muted)",
-                    border: `1px solid ${active ? meta.color + "55" : "var(--border)"}`,
-                  }}
-                >
-                  {meta.label}
-                </button>
-              );
-            })}
-          </div>
+        </div>
+      </section>
+
+      {/* ── Expert Panel ── */}
+      <section className="px-6 py-14 max-w-5xl mx-auto border-t border-[var(--border)]">
+        <div className="flex items-baseline gap-4 mb-8">
+          <span className="text-[11px] text-[var(--amber)] uppercase tracking-[0.3em]">§ 01</span>
+          <h2 className="font-display italic text-3xl">The Expert Panel</h2>
+          <div className="flex-1 h-px bg-[var(--border)] ml-2" />
+          <span className="text-[11px] text-[var(--text-muted)]">Judge reads these</span>
         </div>
 
-        {/* Ticker */}
-        <div className="ticker-wrap py-1.5">
-          <div className="ticker-content text-[11px] text-[var(--text-muted)] tracking-wider">
-            {TICKER.repeat(4)}
-          </div>
-        </div>
-      </header>
-
-      {/* ── Messages ── */}
-      <main className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
-        {messages.length === 0 && !loading && (
-          <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in gap-4">
-            <p className="font-display italic text-4xl text-[var(--text)]">
-              Ask anything about the 10-Ks
-            </p>
-            <p className="text-[14px] text-[var(--text-dim)] max-w-md leading-relaxed">
-              4 AI analysts debate your question using real excerpts from Alphabet, Amazon, and
-              Microsoft&apos;s 2024 annual reports. A Claude judge synthesizes the final answer.
-            </p>
-            <div className="flex items-center gap-5 text-[12px] text-[var(--text-muted)] uppercase tracking-widest mt-2">
-              <span className="flex items-center gap-2"><span style={{ color: "#4ade80" }}>◆</span>GOOGL</span>
-              <span className="flex items-center gap-2"><span style={{ color: "#fb923c" }}>◆</span>AMZN</span>
-              <span className="flex items-center gap-2"><span style={{ color: "#60a5fa" }}>◆</span>MSFT</span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {EXPERTS.map((e, i) => (
+            <div key={i} className="border border-[var(--border)] bg-[var(--bg-2)] p-4 rounded-sm">
+              <div className="w-8 h-1 rounded-full mb-3" style={{ background: e.color }} />
+              <div className="text-[14px] font-bold text-[var(--text)] mb-1">{e.name}</div>
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">{e.org}</div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+        <p className="text-[13px] text-[var(--text-dim)] leading-relaxed max-w-2xl">
+          Each expert receives the same RAG-retrieved context and answers independently.
+          Their responses are passed to the judge for synthesis into a final verdict.
+          No expert sees another&apos;s answer before responding.
+        </p>
+      </section>
 
-        {messages.map((msg) => (
-          <div key={msg.id}>
-            {msg.role === "user" ? (
-              <div className="flex items-start gap-3 animate-fade-slide-up">
-                <div className="w-7 h-7 flex-shrink-0 rounded-sm bg-[var(--bg-3)] border border-[var(--border)] flex items-center justify-center text-[11px] text-[var(--text-muted)] mt-0.5">
-                  you
-                </div>
-                <p className="text-[15px] text-[var(--text)] leading-relaxed pt-0.5">{msg.content}</p>
+      {/* ── General Audience ── */}
+      <section className="px-6 py-14 max-w-5xl mx-auto border-t border-[var(--border)]">
+        <div className="flex items-baseline gap-4 mb-8">
+          <span className="text-[11px] text-[var(--amber)] uppercase tracking-[0.3em]">§ 02</span>
+          <h2 className="font-display italic text-3xl">General Audience</h2>
+          <div className="flex-1 h-px bg-[var(--border)] ml-2" />
+          <span className="text-[11px] text-[var(--text-muted)]">Judge ignores these</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {AUDIENCE.map((a, i) => (
+            <div key={i} className="border border-[var(--border)] bg-[var(--bg-2)] p-4 rounded-sm opacity-60">
+              <div className="w-8 h-1 rounded-full mb-3 bg-[var(--border-2)]" />
+              <div className="text-[13px] font-bold text-[var(--text-dim)] mb-1">{a.name}</div>
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">{a.org} · Free</div>
+            </div>
+          ))}
+        </div>
+        <p className="text-[13px] text-[var(--text-dim)] leading-relaxed max-w-2xl">
+          Four free-tier models from OpenRouter also read the question and share their take —
+          but as general observers, not specialists. They run in parallel with the experts
+          and their responses are shown separately. The judge never reads them.
+        </p>
+      </section>
+
+      {/* ── How We Built It ── */}
+      <section className="px-6 py-14 max-w-5xl mx-auto border-t border-[var(--border)]">
+        <div className="flex items-baseline gap-4 mb-10">
+          <span className="text-[11px] text-[var(--amber)] uppercase tracking-[0.3em]">§ 03</span>
+          <h2 className="font-display italic text-3xl">How It Works</h2>
+          <div className="flex-1 h-px bg-[var(--border)] ml-2" />
+        </div>
+
+        <div className="space-y-0">
+          {STACK.map((s, i) => (
+            <div
+              key={i}
+              className="flex gap-6 py-4 border-b border-[var(--border)] group hover:bg-[var(--bg-2)] px-2 -mx-2 rounded-sm transition-colors duration-150"
+            >
+              <div className="text-[11px] text-[var(--amber)] w-6 flex-shrink-0 pt-0.5 font-bold">{s.step}</div>
+              <div className="flex-1 flex items-baseline gap-4 flex-wrap">
+                <span className="text-[14px] font-bold text-[var(--text)] w-32 flex-shrink-0">{s.label}</span>
+                <span className="text-[13px] text-[var(--text-dim)]">{s.detail}</span>
               </div>
-            ) : (
-              msg.response && <DebateView response={msg.response} />
-            )}
-          </div>
-        ))}
+              <div className="text-[var(--amber)] opacity-0 group-hover:opacity-100 transition-opacity text-[11px] self-center">→</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-        {loading && <LiveStatus />}
+      {/* ── Footer / CTA ── */}
+      <section className="px-6 py-16 max-w-5xl mx-auto border-t border-[var(--border)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div>
+          <p className="font-display italic text-2xl text-[var(--text)] mb-1">Ready to interrogate the filings?</p>
+          <p className="text-[13px] text-[var(--text-muted)]">
+            Built by{" "}
+            <a
+              href="https://github.com/sriram369"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--amber)] hover:underline"
+            >
+              @sriram369
+            </a>{" "}
+            · Team Four · 2026
+          </p>
+        </div>
+        <Link
+          href="/chat"
+          className="inline-flex items-center gap-3 px-8 py-4 bg-[var(--amber)] text-[var(--bg)] text-[13px] uppercase tracking-widest font-bold rounded-sm hover:opacity-90 transition-opacity group"
+        >
+          Open Terminal
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="transition-transform group-hover:translate-x-1">
+            <path d="M1 7H13M13 7L8 2M13 7L8 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </Link>
+      </section>
 
-        {error && (
-          <div className="border border-[#f87171]/30 rounded-sm px-4 py-3 animate-fade-in">
-            <p className="text-[13px] text-[#f87171]">{error}</p>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
-      </main>
-
-      {/* ── Input ── */}
-      <footer className="flex-shrink-0 p-4 border-t border-[var(--border)] bg-[var(--bg-2)]">
-        <ChatInput onSubmit={handleSubmit} loading={loading} />
-      </footer>
+      {/* scanline overlay already in globals.css */}
     </div>
   );
 }

@@ -33,7 +33,7 @@ export function AgentCard({ response, index, isAudience = false }: Props) {
         animationDelay: `${index * 0.1}s`,
         opacity: 0,
         borderColor: isAudience ? "var(--border)" : "var(--border)",
-        background: isAudience ? "rgba(15,16,17,0.6)" : "var(--bg-2)",
+        background: isAudience ? "var(--bg-2)" : "var(--bg-2)",
       }}
     >
       <div className="flex items-center justify-between p-4 pb-3">
@@ -50,12 +50,12 @@ export function AgentCard({ response, index, isAudience = false }: Props) {
           </div>
           <div>
             <div
-              className="text-[13px] font-bold leading-none"
-              style={{ color: isAudience ? "var(--text-dim)" : "var(--text)" }}
+              className="text-[14px] font-bold leading-none"
+              style={{ color: "var(--text)" }}
             >
               {response.agent}
             </div>
-            <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{meta.tag}</div>
+            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{meta.tag}{isAudience ? " · Audience" : ""}</div>
           </div>
         </div>
         <div
@@ -76,8 +76,8 @@ export function AgentCard({ response, index, isAudience = false }: Props) {
           <p className="text-[12px] text-[#f87171] leading-relaxed">{response.error}</p>
         ) : (
           <p
-            className="text-[12px] leading-relaxed whitespace-pre-wrap"
-            style={{ color: isAudience ? "var(--text-muted)" : "var(--text-dim)" }}
+            className="text-[13px] leading-relaxed whitespace-pre-wrap"
+            style={{ color: isAudience ? "var(--text-dim)" : "var(--text-dim)" }}
           >
             {response.answer}
           </p>
