@@ -22,10 +22,10 @@ export function JudgeVerdict({ answer }: Props) {
         </div>
         <div>
           <div className="text-[14px] font-bold text-[var(--amber)] tracking-wide">Final Verdict</div>
-          <div className="text-[11px] text-[var(--text-muted)]">Claude 3.5 Sonnet · Chief Analyst</div>
+          <div className="text-[11px] text-[var(--text-muted)]">Claude 3.5 Sonnet · synthesized from expert panel only</div>
         </div>
         <div className="ml-auto text-[11px] text-[var(--amber-dim)] uppercase tracking-widest font-bold">
-          SYNTHESIZED
+          FINAL
         </div>
       </div>
 

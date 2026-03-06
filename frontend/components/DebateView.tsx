@@ -3,22 +3,21 @@
 import { ChatResponse } from "@/lib/types";
 import { AgentCard } from "./AgentCard";
 import { JudgeVerdict } from "./JudgeVerdict";
-import { useState } from "react";
 
 interface Props {
   response: ChatResponse;
 }
 
 export function DebateView({ response }: Props) {
-  const [showAudience, setShowAudience] = useState(false);
   const sourceCount = Object.values(response.context_used).reduce(
     (acc, chunks) => acc + chunks.length, 0
   );
 
   return (
-    <div className="animate-fade-in space-y-5">
+    <div className="animate-fade-in space-y-6">
+
       {/* Meta bar */}
-      <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] uppercase tracking-widest">
+      <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)] uppercase tracking-widest">
         <span className="text-[var(--amber)]">▸</span>
         <span>4 experts · {response.audience_responses.length} audience</span>
         <span className="text-[var(--border-2)]">·</span>
@@ -30,9 +29,9 @@ export function DebateView({ response }: Props) {
       {/* Expert Panel */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <div className="text-[11px] text-[var(--amber)] uppercase tracking-widest font-bold">Expert Panel</div>
+          <div className="text-[12px] text-[var(--amber)] uppercase tracking-widest font-bold">Expert Panel</div>
           <div className="flex-1 h-px bg-[var(--border)]" />
-          <div className="text-[10px] text-[var(--text-muted)]">Judge reads these</div>
+          <div className="text-[11px] text-[var(--text-muted)]">Judge reads these</div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {response.agent_responses.map((r, i) => (
@@ -41,32 +40,25 @@ export function DebateView({ response }: Props) {
         </div>
       </div>
 
-      {/* Judge Verdict */}
-      <JudgeVerdict answer={response.final_answer} />
-
-      {/* General Audience (collapsible) */}
-      <div>
-        <button
-          onClick={() => setShowAudience((v) => !v)}
-          className="flex items-center gap-2 w-full group"
-        >
-          <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-widest group-hover:text-[var(--text-dim)] transition-colors">
-            General Audience
+      {/* General Audience — always visible */}
+      {response.audience_responses.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="text-[12px] text-[var(--text-dim)] uppercase tracking-widest font-bold">General Audience</div>
+            <div className="flex-1 h-px bg-[var(--border)]" />
+            <div className="text-[11px] text-[var(--text-muted)]">judge ignores these</div>
           </div>
-          <div className="flex-1 h-px bg-[var(--border)]" />
-          <div className="text-[10px] text-[var(--text-muted)] group-hover:text-[var(--text-dim)] transition-colors">
-            {showAudience ? "hide ▲" : "show ▼"} · judge ignores these
-          </div>
-        </button>
-
-        {showAudience && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {response.audience_responses.map((r, i) => (
               <AgentCard key={r.agent} response={r} index={i} isAudience={true} />
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Judge Verdict — always last */}
+      <JudgeVerdict answer={response.final_answer} />
+
     </div>
   );
 }
