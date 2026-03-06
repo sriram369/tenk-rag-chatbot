@@ -7,53 +7,43 @@ import { LiveStatus } from "@/components/LiveStatus";
 import { sendChat } from "@/lib/api";
 import { Message } from "@/lib/types";
 
-const TICKER = "GOOGL +2.4%  ·  AMZN +1.8%  ·  MSFT -0.3%  ·  AI DEBATE ACTIVE  ·  10-K FILINGS 2024  ·  RAG ENABLED  ·  4 EXPERTS + 4 AUDIENCE  ·  CLAUDE JUDGE  ·  ";
+const TICKER = "GOOGL +2.4%  ·  AMZN +1.8%  ·  MSFT -0.3%  ·  AI DEBATE ACTIVE  ·  10-K FILINGS 2024  ·  RAG ENABLED  ·  4 EXPERTS + 4 AUDIENCE  ·  2 JUDGES  ·  CLAUDE JUDGE  ·  ";
 
-const MODELS = [
+const EXPERTS = [
   {
-    name: "GPT-4o",
-    tag: "OpenAI",
-    color: "#74aa9c",
-    logo: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M8 1.5L14 5v6L8 14.5 2 11V5L8 1.5z" stroke="#74aa9c" strokeWidth="1.2" fill="none"/>
-        <circle cx="8" cy="8" r="2" fill="#74aa9c"/>
-      </svg>
-    ),
+    name: "GPT-4o", tag: "OpenAI", color: "#74aa9c",
+    logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L14 5v6L8 14.5 2 11V5L8 1.5z" stroke="#74aa9c" strokeWidth="1.2" fill="none"/><circle cx="8" cy="8" r="2" fill="#74aa9c"/></svg>,
   },
   {
-    name: "Claude",
-    tag: "Anthropic",
-    color: "#cc8b5a",
-    logo: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M8 2L13 13H3L8 2Z" stroke="#cc8b5a" strokeWidth="1.2" fill="none" strokeLinejoin="round"/>
-        <path d="M5.5 9.5h5" stroke="#cc8b5a" strokeWidth="1.2" strokeLinecap="round"/>
-      </svg>
-    ),
+    name: "Claude 3.5", tag: "Anthropic", color: "#cc8b5a",
+    logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L13 13H3L8 2Z" stroke="#cc8b5a" strokeWidth="1.2" fill="none" strokeLinejoin="round"/><path d="M5.5 9.5h5" stroke="#cc8b5a" strokeWidth="1.2" strokeLinecap="round"/></svg>,
   },
   {
-    name: "Gemini 2.0",
-    tag: "Google",
-    color: "#4e90d8",
-    logo: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M8 2L9.5 6.5L14 8L9.5 9.5L8 14L6.5 9.5L2 8L6.5 6.5L8 2Z" stroke="#4e90d8" strokeWidth="1.2" fill="none" strokeLinejoin="round"/>
-      </svg>
-    ),
+    name: "Gemini 2.0", tag: "Google", color: "#4e90d8",
+    logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L9.5 6.5L14 8L9.5 9.5L8 14L6.5 9.5L2 8L6.5 6.5L8 2Z" stroke="#4e90d8" strokeWidth="1.2" fill="none" strokeLinejoin="round"/></svg>,
   },
   {
-    name: "DeepSeek",
-    tag: "DeepSeek",
-    color: "#9b76d4",
-    logo: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="5.5" stroke="#9b76d4" strokeWidth="1.2"/>
-        <path d="M5.5 8C5.5 6.6 6.6 5.5 8 5.5C9.7 5.5 10.5 6.8 10.5 8" stroke="#9b76d4" strokeWidth="1.2" strokeLinecap="round"/>
-        <circle cx="8" cy="10" r="1" fill="#9b76d4"/>
-      </svg>
-    ),
+    name: "DeepSeek R1", tag: "DeepSeek", color: "#9b76d4",
+    logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="#9b76d4" strokeWidth="1.2"/><path d="M5.5 8C5.5 6.6 6.6 5.5 8 5.5C9.7 5.5 10.5 6.8 10.5 8" stroke="#9b76d4" strokeWidth="1.2" strokeLinecap="round"/><circle cx="8" cy="10" r="1" fill="#9b76d4"/></svg>,
   },
+];
+
+const JUDGES = [
+  {
+    name: "Claude 3.5 Sonnet", tag: "Primary · Anthropic", color: "#e8a020",
+    logo: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.8 5.2H13L9.6 7.8L10.8 12L7 9.6L3.2 12L4.4 7.8L1 5.2H5.2L7 1Z" fill="#e8a020"/></svg>,
+  },
+  {
+    name: "Llama 3.3 70B", tag: "Second Opinion · Free", color: "#4a7ab5",
+    logo: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#4a7ab5" strokeWidth="1.2"/><path d="M4.5 7L6.5 9L9.5 5" stroke="#4a7ab5" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  },
+];
+
+const AUDIENCE_MODELS = [
+  { name: "GPT-OSS 120B",  tag: "OpenAI",  color: "#5a8a7a" },
+  { name: "Llama 3.3 70B", tag: "Meta",    color: "#4a7ab5" },
+  { name: "Qwen3 235B",    tag: "Alibaba", color: "#8b6db5" },
+  { name: "Gemma 3 27B",   tag: "Google",  color: "#4a8a6a" },
 ];
 
 const COMPANIES = ["alphabet", "amazon", "microsoft"];
@@ -129,39 +119,84 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Model logos row */}
-        <div className="flex items-center gap-4 px-5 pb-3 border-b border-[var(--border)]">
-          {MODELS.map((m) => (
-            <div key={m.name} className="flex items-center gap-2">
-              {m.logo}
-              <div>
-                <div className="text-[13px] font-bold" style={{ color: m.color }}>{m.name}</div>
-                <div className="text-[10px] text-[var(--text-muted)]">{m.tag}</div>
-              </div>
+        {/* All models row */}
+        <div className="border-b border-[var(--border)] overflow-x-auto">
+          <div className="flex items-stretch min-w-max px-5">
+
+            {/* Expert Panel */}
+            <div className="flex items-center gap-1 py-2.5 pr-4">
+              <div className="text-[9px] text-[var(--amber)] uppercase tracking-widest font-bold w-14 flex-shrink-0 leading-tight">Expert<br/>Panel</div>
+              <div className="w-px h-6 bg-[var(--border)] mx-2" />
+              {EXPERTS.map((m) => (
+                <div key={m.name} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm" style={{ background: `${m.color}0a` }}>
+                  {m.logo}
+                  <div>
+                    <div className="text-[12px] font-bold leading-none" style={{ color: m.color }}>{m.name}</div>
+                    <div className="text-[9px] text-[var(--text-muted)] mt-0.5">{m.tag}</div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-          <div className="ml-auto h-8 w-px bg-[var(--border)]" />
-          {/* Company scope toggles */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Sources:</span>
-            {COMPANIES.map((c) => {
-              const meta = COMPANY_META[c];
-              const active = selected.includes(c);
-              return (
-                <button
-                  key={c}
-                  onClick={() => toggleCompany(c)}
-                  className="text-[12px] px-2.5 py-1 rounded-sm font-bold transition-all duration-150"
-                  style={{
-                    background: active ? `${meta.color}18` : "transparent",
-                    color: active ? meta.color : "var(--text-muted)",
-                    border: `1px solid ${active ? meta.color + "55" : "var(--border)"}`,
-                  }}
-                >
-                  {meta.label}
-                </button>
-              );
-            })}
+
+            <div className="w-px bg-[var(--border)] my-2" />
+
+            {/* Judges */}
+            <div className="flex items-center gap-1 py-2.5 px-4">
+              <div className="text-[9px] text-[var(--amber)] uppercase tracking-widest font-bold w-10 flex-shrink-0 leading-tight">Judges</div>
+              <div className="w-px h-6 bg-[var(--border)] mx-2" />
+              {JUDGES.map((j) => (
+                <div key={j.name} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm" style={{ background: `${j.color}0a` }}>
+                  {j.logo}
+                  <div>
+                    <div className="text-[12px] font-bold leading-none" style={{ color: j.color }}>{j.name}</div>
+                    <div className="text-[9px] text-[var(--text-muted)] mt-0.5">{j.tag}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="w-px bg-[var(--border)] my-2" />
+
+            {/* Audience */}
+            <div className="flex items-center gap-1 py-2.5 px-4">
+              <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-bold w-14 flex-shrink-0 leading-tight">Audience<br/>(free)</div>
+              <div className="w-px h-6 bg-[var(--border)] mx-2" />
+              {AUDIENCE_MODELS.map((a) => (
+                <div key={a.name} className="flex items-center gap-1.5 px-2 py-1.5 opacity-70">
+                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
+                  <div>
+                    <div className="text-[11px] font-bold leading-none" style={{ color: a.color }}>{a.name}</div>
+                    <div className="text-[9px] text-[var(--text-muted)] mt-0.5">{a.tag}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="w-px bg-[var(--border)] my-2" />
+
+            {/* Company scope toggles */}
+            <div className="flex items-center gap-2 py-2.5 pl-4 ml-auto">
+              <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Sources:</span>
+              {COMPANIES.map((c) => {
+                const meta = COMPANY_META[c];
+                const active = selected.includes(c);
+                return (
+                  <button
+                    key={c}
+                    onClick={() => toggleCompany(c)}
+                    className="text-[11px] px-2 py-1 rounded-sm font-bold transition-all duration-150"
+                    style={{
+                      background: active ? `${meta.color}18` : "transparent",
+                      color: active ? meta.color : "var(--text-muted)",
+                      border: `1px solid ${active ? meta.color + "55" : "var(--border)"}`,
+                    }}
+                  >
+                    {meta.label}
+                  </button>
+                );
+              })}
+            </div>
+
           </div>
         </div>
 
