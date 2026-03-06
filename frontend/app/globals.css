@@ -5,17 +5,17 @@
 @tailwind utilities;
 
 :root {
-  --bg: #080909;
-  --bg-2: #0f1011;
-  --bg-3: #161718;
-  --border: #1e2021;
-  --border-2: #2a2c2e;
-  --amber: #e8a020;
-  --amber-dim: #a06b10;
-  --amber-glow: rgba(232, 160, 32, 0.1);
-  --text: #e8e4dc;
-  --text-dim: #9a948c;
-  --text-muted: #504c48;
+  --bg: #faf9f7;
+  --bg-2: #f2f0ec;
+  --bg-3: #e8e5e0;
+  --border: #d8d4cc;
+  --border-2: #c4bfb6;
+  --amber: #b86e00;
+  --amber-dim: #c88820;
+  --amber-glow: rgba(184, 110, 0, 0.08);
+  --text: #1a1714;
+  --text-dim: #4a4540;
+  --text-muted: #8a837a;
 }
 
 * { box-sizing: border-box; }
@@ -36,8 +36,8 @@ body::before {
   position: fixed;
   inset: 0;
   background: repeating-linear-gradient(
-    0deg, transparent, transparent 2px,
-    rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px
+    0deg, transparent, transparent 3px,
+    rgba(0,0,0,0.012) 3px, rgba(0,0,0,0.012) 4px
   );
   pointer-events: none;
   z-index: 999;
