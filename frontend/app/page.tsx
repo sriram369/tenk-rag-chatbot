@@ -33,7 +33,7 @@ const MODELS = [
     ),
   },
   {
-    name: "Gemini",
+    name: "Gemini 2.0",
     tag: "Google",
     color: "#4e90d8",
     logo: (

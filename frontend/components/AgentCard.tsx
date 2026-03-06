@@ -5,7 +5,7 @@ import { AgentResponse } from "@/lib/types";
 const AGENT_META: Record<string, { tag: string; color: string; short: string }> = {
   "GPT-4o":            { tag: "OpenAI",    color: "#74aa9c", short: "G4" },
   "Claude 3.5 Sonnet": { tag: "Anthropic", color: "#cc8b5a", short: "CL" },
-  "Gemini 1.5 Pro":    { tag: "Google",    color: "#4e90d8", short: "GM" },
+  "Gemini 2.0 Flash":  { tag: "Google",    color: "#4e90d8", short: "GM" },
   "DeepSeek R1":       { tag: "DeepSeek",  color: "#9b76d4", short: "DS" },
 };
 

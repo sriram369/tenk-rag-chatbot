@@ -9,7 +9,7 @@ from openai import AsyncOpenAI
 AGENTS = [
     {"name": "GPT-4o", "model": "openai/gpt-4o"},
     {"name": "Claude 3.5 Sonnet", "model": "anthropic/claude-3.5-sonnet"},
-    {"name": "Gemini 1.5 Pro", "model": "google/gemini-pro-1.5"},
+    {"name": "Gemini 2.0 Flash", "model": "google/gemini-2.0-flash-001"},
     {"name": "DeepSeek R1", "model": "deepseek/deepseek-r1"},
 ]
 
