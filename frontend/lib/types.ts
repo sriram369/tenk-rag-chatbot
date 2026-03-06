@@ -26,3 +26,28 @@ export interface Message {
   response?: ChatResponse;
   timestamp: Date;
 }
+
+// ── Streaming types ───────────────────────────────────────────────────────────
+
+export interface AgentCardState {
+  answer: string | null;
+  error: string | null;
+  done: boolean;
+}
+
+export interface StreamState {
+  experts:  Record<string, AgentCardState>;
+  audience: Record<string, AgentCardState>;
+  verdicts: {
+    primary?:   string;
+    secondary?: string;
+  };
+  isJudging: boolean;
+  isDone:    boolean;
+}
+
+export interface ConversationEntry {
+  id: string;
+  question: string;
+  state: StreamState;
+}

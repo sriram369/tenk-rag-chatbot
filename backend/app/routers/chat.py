@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
@@ -6,7 +7,7 @@ import os
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../../.env"))
 
 from app.services.rag import retrieve_context, format_context_for_prompt
-from app.services.debate import run_debate
+from app.services.debate import run_debate, stream_debate
 
 router = APIRouter()
 
@@ -32,8 +33,9 @@ class ChatResponse(BaseModel):
     second_verdict: str
 
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+@router.post("/chat/stream")
+async def chat_stream(request: ChatRequest):
+    """SSE endpoint — streams agent responses as they arrive."""
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
@@ -41,10 +43,30 @@ async def chat(request: ChatRequest):
     formatted_context = format_context_for_prompt(context)
 
     if not formatted_context.strip():
-        raise HTTPException(
-            status_code=404,
-            detail="No relevant context found. Make sure PDFs have been ingested.",
-        )
+        raise HTTPException(status_code=404, detail="No relevant context found. Make sure PDFs have been ingested.")
+
+    return StreamingResponse(
+        stream_debate(request.question, formatted_context),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    """Batch endpoint — kept for backwards compatibility."""
+    if not request.question.strip():
+        raise HTTPException(status_code=400, detail="Question cannot be empty")
+
+    context = retrieve_context(request.question, request.companies)
+    formatted_context = format_context_for_prompt(context)
+
+    if not formatted_context.strip():
+        raise HTTPException(status_code=404, detail="No relevant context found.")
 
     result = await run_debate(request.question, formatted_context)
 

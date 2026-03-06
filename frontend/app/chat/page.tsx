@@ -2,41 +2,22 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ChatInput } from "@/components/ChatInput";
-import { DebateView } from "@/components/DebateView";
-import { LiveStatus } from "@/components/LiveStatus";
-import { sendChat } from "@/lib/api";
-import { Message } from "@/lib/types";
+import { LiveDebate } from "@/components/LiveDebate";
+import { streamChat, emptyStreamState } from "@/lib/api";
+import { StreamState, ConversationEntry } from "@/lib/types";
 
 const TICKER = "GOOGL +2.4%  ·  AMZN +1.8%  ·  MSFT -0.3%  ·  AI DEBATE ACTIVE  ·  10-K FILINGS 2024  ·  RAG ENABLED  ·  4 EXPERTS + 4 AUDIENCE  ·  2 JUDGES  ·  CLAUDE JUDGE  ·  ";
 
 const EXPERTS = [
-  {
-    name: "GPT-4o", tag: "OpenAI", color: "#74aa9c",
-    logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L14 5v6L8 14.5 2 11V5L8 1.5z" stroke="#74aa9c" strokeWidth="1.2" fill="none"/><circle cx="8" cy="8" r="2" fill="#74aa9c"/></svg>,
-  },
-  {
-    name: "Claude 3.5", tag: "Anthropic", color: "#cc8b5a",
-    logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L13 13H3L8 2Z" stroke="#cc8b5a" strokeWidth="1.2" fill="none" strokeLinejoin="round"/><path d="M5.5 9.5h5" stroke="#cc8b5a" strokeWidth="1.2" strokeLinecap="round"/></svg>,
-  },
-  {
-    name: "Gemini 2.0", tag: "Google", color: "#4e90d8",
-    logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L9.5 6.5L14 8L9.5 9.5L8 14L6.5 9.5L2 8L6.5 6.5L8 2Z" stroke="#4e90d8" strokeWidth="1.2" fill="none" strokeLinejoin="round"/></svg>,
-  },
-  {
-    name: "DeepSeek R1", tag: "DeepSeek", color: "#9b76d4",
-    logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="#9b76d4" strokeWidth="1.2"/><path d="M5.5 8C5.5 6.6 6.6 5.5 8 5.5C9.7 5.5 10.5 6.8 10.5 8" stroke="#9b76d4" strokeWidth="1.2" strokeLinecap="round"/><circle cx="8" cy="10" r="1" fill="#9b76d4"/></svg>,
-  },
+  { name: "GPT-4o",       tag: "OpenAI",    color: "#74aa9c", logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L14 5v6L8 14.5 2 11V5L8 1.5z" stroke="#74aa9c" strokeWidth="1.2" fill="none"/><circle cx="8" cy="8" r="2" fill="#74aa9c"/></svg> },
+  { name: "Claude 3.5",   tag: "Anthropic", color: "#cc8b5a", logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L13 13H3L8 2Z" stroke="#cc8b5a" strokeWidth="1.2" fill="none" strokeLinejoin="round"/><path d="M5.5 9.5h5" stroke="#cc8b5a" strokeWidth="1.2" strokeLinecap="round"/></svg> },
+  { name: "Gemini 2.0",   tag: "Google",    color: "#4e90d8", logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L9.5 6.5L14 8L9.5 9.5L8 14L6.5 9.5L2 8L6.5 6.5L8 2Z" stroke="#4e90d8" strokeWidth="1.2" fill="none" strokeLinejoin="round"/></svg> },
+  { name: "DeepSeek R1",  tag: "DeepSeek",  color: "#9b76d4", logo: <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="#9b76d4" strokeWidth="1.2"/><path d="M5.5 8C5.5 6.6 6.6 5.5 8 5.5C9.7 5.5 10.5 6.8 10.5 8" stroke="#9b76d4" strokeWidth="1.2" strokeLinecap="round"/><circle cx="8" cy="10" r="1" fill="#9b76d4"/></svg> },
 ];
 
 const JUDGES = [
-  {
-    name: "Claude 3.5 Sonnet", tag: "Primary · Anthropic", color: "#e8a020",
-    logo: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.8 5.2H13L9.6 7.8L10.8 12L7 9.6L3.2 12L4.4 7.8L1 5.2H5.2L7 1Z" fill="#e8a020"/></svg>,
-  },
-  {
-    name: "Llama 3.3 70B", tag: "Second Opinion · Free", color: "#4a7ab5",
-    logo: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#4a7ab5" strokeWidth="1.2"/><path d="M4.5 7L6.5 9L9.5 5" stroke="#4a7ab5" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-  },
+  { name: "Claude 3.5 Sonnet", tag: "Primary · Anthropic",    color: "#e8a020", logo: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.8 5.2H13L9.6 7.8L10.8 12L7 9.6L3.2 12L4.4 7.8L1 5.2H5.2L7 1Z" fill="#e8a020"/></svg> },
+  { name: "Llama 3.3 70B",     tag: "Second Opinion · Free",  color: "#4a7ab5", logo: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#4a7ab5" strokeWidth="1.2"/><path d="M4.5 7L6.5 9L9.5 5" stroke="#4a7ab5" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg> },
 ];
 
 const AUDIENCE_MODELS = [
@@ -53,16 +34,17 @@ const COMPANY_META: Record<string, { label: string; color: string }> = {
   microsoft: { label: "MSFT",  color: "#60a5fa" },
 };
 
-export default function Home() {
-  const [messages, setMessages]     = useState<Message[]>([]);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-  const [selected, setSelected]     = useState<string[]>(COMPANIES);
+export default function ChatPage() {
+  const [history,   setHistory]   = useState<ConversationEntry[]>([]);
+  const [streaming, setStreaming] = useState<{ question: string; state: StreamState } | null>(null);
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
+  const [selected,  setSelected]  = useState<string[]>(COMPANIES);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [history, streaming]);
 
   const toggleCompany = (c: string) => {
     setSelected((prev) =>
@@ -71,30 +53,51 @@ export default function Home() {
   };
 
   const handleSubmit = async (question: string) => {
-    const userMsg: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: question,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
     setError(null);
 
-    try {
-      const data = await sendChat({ question, companies: selected });
-      setMessages((prev) => [...prev, {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: data.final_answer,
-        response: data,
-        timestamp: new Date(),
-      }]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed");
-    } finally {
-      setLoading(false);
-    }
+    // Initialise empty streaming state — all tiles show spinners
+    let current: StreamState = emptyStreamState();
+    setStreaming({ question, state: current });
+
+    const update = (next: StreamState) => {
+      current = next;
+      setStreaming({ question, state: { ...next } });
+    };
+
+    await streamChat(
+      { question, companies: selected },
+      {
+        onAgent: (type, agent, answer, err) => {
+          const key = type === "expert" ? "experts" : "audience";
+          update({
+            ...current,
+            [key]: { ...current[key], [agent]: { answer, error: err, done: true } },
+          });
+        },
+        onJudging: () => update({ ...current, isJudging: true }),
+        onVerdict: (variant, _agent, answer) => {
+          update({
+            ...current,
+            verdicts: { ...current.verdicts, [variant]: answer },
+          });
+        },
+        onDone: () => {
+          const final: StreamState = { ...current, isDone: true, isJudging: false };
+          setHistory((prev) => [
+            ...prev,
+            { id: crypto.randomUUID(), question, state: final },
+          ]);
+          setStreaming(null);
+          setLoading(false);
+        },
+        onError: (msg) => {
+          setError(msg);
+          setStreaming(null);
+          setLoading(false);
+        },
+      }
+    );
   };
 
   return (
@@ -103,7 +106,7 @@ export default function Home() {
       {/* ── Header ── */}
       <header className="flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg-2)]">
 
-        {/* Top row: title + live badge */}
+        {/* Top row */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 border border-[var(--amber-dim)] rounded-sm flex items-center justify-center">
@@ -174,11 +177,11 @@ export default function Home() {
 
             <div className="w-px bg-[var(--border)] my-2" />
 
-            {/* Company scope toggles */}
-            <div className="flex items-center gap-2 py-2.5 pl-4 ml-auto">
+            {/* Source toggles */}
+            <div className="flex items-center gap-2 py-2.5 pl-4">
               <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Sources:</span>
               {COMPANIES.map((c) => {
-                const meta = COMPANY_META[c];
+                const meta   = COMPANY_META[c];
                 const active = selected.includes(c);
                 return (
                   <button
@@ -187,8 +190,8 @@ export default function Home() {
                     className="text-[11px] px-2 py-1 rounded-sm font-bold transition-all duration-150"
                     style={{
                       background: active ? `${meta.color}18` : "transparent",
-                      color: active ? meta.color : "var(--text-muted)",
-                      border: `1px solid ${active ? meta.color + "55" : "var(--border)"}`,
+                      color:      active ? meta.color : "var(--text-muted)",
+                      border:     `1px solid ${active ? meta.color + "55" : "var(--border)"}`,
                     }}
                   >
                     {meta.label}
@@ -208,16 +211,17 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ── Messages ── */}
-      <main className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
-        {messages.length === 0 && !loading && (
-          <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in gap-4">
-            <p className="font-display italic text-4xl text-[var(--text)]">
-              Ask anything about the 10-Ks
-            </p>
+      {/* ── Main ── */}
+      <main className="flex-1 overflow-y-auto px-5 py-5 space-y-8">
+
+        {/* Empty state */}
+        {history.length === 0 && !streaming && (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-4 animate-fade-in">
+            <p className="font-display italic text-4xl text-[var(--text)]">Ask anything about the 10-Ks</p>
             <p className="text-[14px] text-[var(--text-dim)] max-w-md leading-relaxed">
-              4 AI analysts debate your question using real excerpts from Alphabet, Amazon, and
-              Microsoft&apos;s 2024 annual reports. A Claude judge synthesizes the final answer.
+              10 models respond in real time — 4 expert analysts debate your question, 4 audience
+              models observe, then 2 judges deliver verdicts from Alphabet, Amazon, and Microsoft&apos;s
+              2024 annual reports.
             </p>
             <div className="flex items-center gap-5 text-[12px] text-[var(--text-muted)] uppercase tracking-widest mt-2">
               <span className="flex items-center gap-2"><span style={{ color: "#4ade80" }}>◆</span>GOOGL</span>
@@ -227,23 +231,35 @@ export default function Home() {
           </div>
         )}
 
-        {messages.map((msg) => (
-          <div key={msg.id}>
-            {msg.role === "user" ? (
-              <div className="flex items-start gap-3 animate-fade-slide-up">
-                <div className="w-7 h-7 flex-shrink-0 rounded-sm bg-[var(--bg-3)] border border-[var(--border)] flex items-center justify-center text-[11px] text-[var(--text-muted)] mt-0.5">
-                  you
-                </div>
-                <p className="text-[15px] text-[var(--text)] leading-relaxed pt-0.5">{msg.content}</p>
+        {/* Completed history */}
+        {history.map((entry) => (
+          <div key={entry.id} className="space-y-4">
+            {/* User question */}
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 flex-shrink-0 rounded-sm bg-[var(--bg-3)] border border-[var(--border)] flex items-center justify-center text-[11px] text-[var(--text-muted)] mt-0.5">
+                you
               </div>
-            ) : (
-              msg.response && <DebateView response={msg.response} />
-            )}
+              <p className="text-[15px] text-[var(--text)] leading-relaxed pt-0.5">{entry.question}</p>
+            </div>
+            {/* Live grid (filled in) */}
+            <LiveDebate state={entry.state} />
           </div>
         ))}
 
-        {loading && <LiveStatus />}
+        {/* Active stream */}
+        {streaming && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 animate-fade-in">
+              <div className="w-7 h-7 flex-shrink-0 rounded-sm bg-[var(--bg-3)] border border-[var(--border)] flex items-center justify-center text-[11px] text-[var(--text-muted)] mt-0.5">
+                you
+              </div>
+              <p className="text-[15px] text-[var(--text)] leading-relaxed pt-0.5">{streaming.question}</p>
+            </div>
+            <LiveDebate state={streaming.state} />
+          </div>
+        )}
 
+        {/* Error */}
         {error && (
           <div className="border border-[#f87171]/30 rounded-sm px-4 py-3 animate-fade-in">
             <p className="text-[13px] text-[#f87171]">{error}</p>
