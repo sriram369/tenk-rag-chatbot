@@ -160,9 +160,9 @@ function JudgeTile({
       </div>
 
       {/* Body */}
-      <div className="px-4 py-3 overflow-y-auto" style={{ maxHeight: 200 }}>
+      <div className="px-4 py-4 overflow-y-auto" style={{ maxHeight: 320 }}>
         {done ? (
-          <p className="text-[13px] leading-relaxed" style={{ color: isPrimary ? color : "#7aaadd" }}>
+          <p className="text-[14px] font-bold leading-relaxed" style={{ color: isPrimary ? color : "#3a6aaa" }}>
             {answer}
           </p>
         ) : isJudging ? (
@@ -229,7 +229,7 @@ export function LiveDebate({ state }: Props) {
       {showJudges && (
         <div className="animate-fade-in">
           <SectionHead label="Verdicts" note="Expert panel only · audience excluded" amber />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <JudgeTile
               name="Claude 3.5 Sonnet"
               variant="primary"
