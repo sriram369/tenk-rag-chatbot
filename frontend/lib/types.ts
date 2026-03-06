@@ -9,6 +9,7 @@ export interface ChatResponse {
   question: string;
   context_used: Record<string, string[]>;
   agent_responses: AgentResponse[];
+  audience_responses: AgentResponse[];
   final_answer: string;
 }
 

@@ -13,7 +13,7 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     question: str
-    companies: list[str] | None = None  # None = all three
+    companies: list[str] | None = None
 
 
 class AgentResponse(BaseModel):
@@ -27,6 +27,7 @@ class ChatResponse(BaseModel):
     question: str
     context_used: dict[str, list[str]]
     agent_responses: list[AgentResponse]
+    audience_responses: list[AgentResponse]
     final_answer: str
 
 
@@ -35,7 +36,6 @@ async def chat(request: ChatRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
-    # Step 1: RAG retrieval
     context = retrieve_context(request.question, request.companies)
     formatted_context = format_context_for_prompt(context)
 
@@ -45,13 +45,13 @@ async def chat(request: ChatRequest):
             detail="No relevant context found. Make sure PDFs have been ingested.",
         )
 
-    # Step 2: Multi-agent debate
     result = await run_debate(request.question, formatted_context)
 
     return ChatResponse(
         question=result["question"],
         context_used=context,
         agent_responses=[AgentResponse(**r) for r in result["agent_responses"]],
+        audience_responses=[AgentResponse(**r) for r in result["audience_responses"]],
         final_answer=result["final_answer"],
     )
 

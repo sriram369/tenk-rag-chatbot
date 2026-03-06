@@ -7,7 +7,7 @@ import { LiveStatus } from "@/components/LiveStatus";
 import { sendChat } from "@/lib/api";
 import { Message } from "@/lib/types";
 
-const TICKER = "GOOGL +2.4%  ·  AMZN +1.8%  ·  MSFT -0.3%  ·  AI DEBATE ACTIVE  ·  10-K FILINGS 2024  ·  RAG ENABLED  ·  4 ANALYST MODELS  ·  CLAUDE JUDGE  ·  ";
+const TICKER = "GOOGL +2.4%  ·  AMZN +1.8%  ·  MSFT -0.3%  ·  AI DEBATE ACTIVE  ·  10-K FILINGS 2024  ·  RAG ENABLED  ·  4 EXPERTS + 4 AUDIENCE  ·  CLAUDE JUDGE  ·  ";
 
 const MODELS = [
   {
