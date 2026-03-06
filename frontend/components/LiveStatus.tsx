@@ -137,20 +137,32 @@ export function LiveStatus() {
         </div>
       )}
 
-      {/* Judge */}
+      {/* Judges */}
       {showJudge && (
-        <div className="border-t border-[var(--amber-dim)] pt-4 animate-fade-in">
+        <div className="border-t border-[var(--amber-dim)] pt-4 animate-fade-in space-y-2">
+          <div className="text-[10px] text-[var(--amber)] uppercase tracking-widest font-bold mb-2">
+            Judges · running in parallel
+          </div>
           <div className="flex items-center gap-3">
             <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
               <div className="w-3 h-3 border-2 rounded-full animate-spin-slow"
                 style={{ borderColor: "#e8a020 transparent transparent transparent" }} />
             </div>
             <span className="text-[13px] font-bold text-[var(--amber)]">Claude 3.5 Sonnet</span>
-            <span className="text-[11px] text-[var(--text-muted)]">Chief Analyst · Judge</span>
-            <span className="ml-auto text-[11px] text-[var(--amber)] italic">synthesizing verdict…</span>
+            <span className="text-[11px] text-[var(--text-muted)]">Primary Judge</span>
+            <span className="ml-auto text-[11px] text-[var(--amber)]">synthesizing…</span>
           </div>
-          <div className="mt-2 text-[10px] text-[var(--text-muted)] pl-8">
-            Reading expert responses only · audience excluded
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+              <div className="w-3 h-3 border-2 rounded-full animate-spin-slow"
+                style={{ borderColor: "#4a7ab5 transparent transparent transparent" }} />
+            </div>
+            <span className="text-[13px] font-bold" style={{ color: "#4a7ab5" }}>Llama 3.3 70B</span>
+            <span className="text-[11px] text-[var(--text-muted)]">Second Opinion · free</span>
+            <span className="ml-auto text-[11px]" style={{ color: "#4a7ab5" }}>reviewing…</span>
+          </div>
+          <div className="mt-1 text-[10px] text-[var(--text-muted)] pl-8">
+            Expert panel only · audience excluded
           </div>
         </div>
       )}

@@ -29,6 +29,7 @@ class ChatResponse(BaseModel):
     agent_responses: list[AgentResponse]
     audience_responses: list[AgentResponse]
     final_answer: str
+    second_verdict: str
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -53,6 +54,7 @@ async def chat(request: ChatRequest):
         agent_responses=[AgentResponse(**r) for r in result["agent_responses"]],
         audience_responses=[AgentResponse(**r) for r in result["audience_responses"]],
         final_answer=result["final_answer"],
+        second_verdict=result["second_verdict"],
     )
 
 

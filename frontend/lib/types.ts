@@ -11,6 +11,7 @@ export interface ChatResponse {
   agent_responses: AgentResponse[];
   audience_responses: AgentResponse[];
   final_answer: string;
+  second_verdict: string;
 }
 
 export interface ChatRequest {

@@ -2,7 +2,8 @@
 Multi-agent debate service.
 - Expert Panel (4 paid models): answers used by judge
 - General Audience (4 free models): gives opinions, judge ignores them
-- Judge (Claude 3.5 Sonnet): synthesizes only from expert panel
+- Judge 1 (Claude 3.5 Sonnet): primary synthesis from expert panel
+- Judge 2 (Llama 3.3 70B): free second opinion from expert panel
 """
 
 import asyncio
@@ -23,7 +24,9 @@ AUDIENCE = [
     {"name": "Gemma 3 27B",    "model": "google/gemma-3-27b-it"},
 ]
 
-JUDGE_MODEL = "anthropic/claude-3.5-sonnet"
+JUDGE_MODEL        = "anthropic/claude-3.5-sonnet"
+SECOND_JUDGE_MODEL = "meta-llama/llama-3.3-70b-instruct"
+SECOND_JUDGE_NAME  = "Llama 3.3 70B"
 
 EXPERT_SYSTEM_PROMPT = """You are a financial analyst expert specializing in analyzing SEC 10-K filings.
 You will be given relevant excerpts from 10-K annual reports and a question.
@@ -42,6 +45,15 @@ Your job is to:
 3. Synthesize a definitive final answer that is comprehensive and accurate
 4. Cite specific figures and facts
 Be authoritative and concise. Base your verdict ONLY on the expert panel responses."""
+
+SECOND_JUDGE_SYSTEM_PROMPT = """You are an independent financial analyst providing a second opinion.
+You will receive a question and answers from 4 expert financial analysts who analyzed 10-K filings.
+Your job is to:
+1. Independently evaluate the expert responses
+2. Point out anything the experts may have missed or where they contradict each other
+3. Give your own clear, direct verdict backed by the facts in their answers
+4. Keep it concise and direct — no fluff
+Base your verdict ONLY on the expert panel responses provided."""
 
 
 def _get_client() -> AsyncOpenAI:
@@ -71,7 +83,7 @@ async def _ask_agent(client: AsyncOpenAI, agent: dict, question: str, context: s
         return {"agent": agent["name"], "model": agent["model"], "answer": None, "error": str(e)}
 
 
-async def _judge_answers(client: AsyncOpenAI, question: str, expert_responses: list[dict]) -> str:
+async def _call_judge(client: AsyncOpenAI, model: str, system_prompt: str, question: str, expert_responses: list[dict]) -> str:
     answers_text = ""
     for r in expert_responses:
         if r["answer"]:
@@ -80,12 +92,12 @@ async def _judge_answers(client: AsyncOpenAI, question: str, expert_responses: l
             answers_text += f"\n\n--- {r['agent']} ---\nERROR: {r['error']}"
 
     response = await client.chat.completions.create(
-        model=JUDGE_MODEL,
+        model=model,
         messages=[
-            {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {
                 "role": "user",
-                "content": f"Question: {question}\n\nExpert Panel Responses:{answers_text}\n\nProvide your final synthesized verdict:",
+                "content": f"Question: {question}\n\nExpert Panel Responses:{answers_text}\n\nProvide your verdict:",
             },
         ],
         max_tokens=1000,
@@ -97,7 +109,7 @@ async def _judge_answers(client: AsyncOpenAI, question: str, expert_responses: l
 async def run_debate(question: str, context: str) -> dict:
     """
     Runs expert panel + audience in parallel.
-    Judge synthesizes only from expert panel.
+    Both judges synthesize only from expert panel, running in parallel.
     """
     client = _get_client()
 
@@ -110,12 +122,18 @@ async def run_debate(question: str, context: str) -> dict:
         asyncio.gather(*audience_tasks),
     )
 
-    # Judge reads only experts
-    final_answer = await _judge_answers(client, question, list(expert_responses))
+    expert_list = list(expert_responses)
+
+    # Both judges read only experts, run in parallel
+    final_answer, second_verdict = await asyncio.gather(
+        _call_judge(client, JUDGE_MODEL,        JUDGE_SYSTEM_PROMPT,        question, expert_list),
+        _call_judge(client, SECOND_JUDGE_MODEL, SECOND_JUDGE_SYSTEM_PROMPT, question, expert_list),
+    )
 
     return {
         "question": question,
-        "agent_responses": list(expert_responses),
+        "agent_responses": expert_list,
         "audience_responses": list(audience_responses),
         "final_answer": final_answer,
+        "second_verdict": second_verdict,
     }

@@ -31,7 +31,7 @@ export function DebateView({ response }: Props) {
         <div className="flex items-center gap-2 mb-3">
           <div className="text-[12px] text-[var(--amber)] uppercase tracking-widest font-bold">Expert Panel</div>
           <div className="flex-1 h-px bg-[var(--border)]" />
-          <div className="text-[11px] text-[var(--text-muted)]">Judge reads these</div>
+          <div className="text-[11px] text-[var(--text-muted)]">Both judges read these</div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {response.agent_responses.map((r, i) => (
@@ -40,13 +40,13 @@ export function DebateView({ response }: Props) {
         </div>
       </div>
 
-      {/* General Audience — always visible */}
+      {/* General Audience */}
       {response.audience_responses.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <div className="text-[12px] text-[var(--text-dim)] uppercase tracking-widest font-bold">General Audience</div>
             <div className="flex-1 h-px bg-[var(--border)]" />
-            <div className="text-[11px] text-[var(--text-muted)]">judge ignores these</div>
+            <div className="text-[11px] text-[var(--text-muted)]">judges ignore these</div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {response.audience_responses.map((r, i) => (
@@ -56,8 +56,18 @@ export function DebateView({ response }: Props) {
         </div>
       )}
 
-      {/* Judge Verdict — always last */}
-      <JudgeVerdict answer={response.final_answer} />
+      {/* Verdicts side by side or stacked */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="text-[12px] text-[var(--amber)] uppercase tracking-widest font-bold">Verdicts</div>
+          <div className="flex-1 h-px bg-[var(--amber-dim)]" />
+          <div className="text-[11px] text-[var(--text-muted)]">2 judges · expert panel only</div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <JudgeVerdict answer={response.final_answer}   variant="primary" />
+          <JudgeVerdict answer={response.second_verdict} variant="secondary" />
+        </div>
+      </div>
 
     </div>
   );
