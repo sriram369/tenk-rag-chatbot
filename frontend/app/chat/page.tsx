@@ -205,19 +205,26 @@ export default function ChatPage() {
             </div>
 
             {/* Embedding model toggle */}
-            <div className="flex items-center gap-2 py-2.5 pl-4">
-              <span className="text-xs text-white/40 font-mono">embeddings:</span>
+            <div className="flex items-center gap-3 py-2.5 pl-4">
+              <span className="text-[11px] text-[var(--amber)] uppercase tracking-widest font-bold">Embedding</span>
+              <div className="w-px h-6 bg-[var(--border)]" />
               {(["large", "small"] as const).map((tier) => (
                 <button
                   key={tier}
                   onClick={() => setEmbeddingTier(tier)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                    embeddingTier === tier
-                      ? "bg-white/20 text-white border border-white/30"
-                      : "bg-white/5 text-white/40 hover:bg-white/10 border border-white/10"
-                  }`}
+                  className="transition-all duration-150"
+                  style={{
+                    padding: "5px 14px",
+                    borderRadius: "4px",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    letterSpacing: "0.02em",
+                    background: embeddingTier === tier ? "#e8a02022" : "transparent",
+                    color:      embeddingTier === tier ? "#e8a020"   : "var(--text-muted)",
+                    border:     `1px solid ${embeddingTier === tier ? "#e8a02066" : "var(--border)"}`,
+                  }}
                 >
-                  {tier === "large" ? "3-large · best" : "3-small · fast"}
+                  {tier === "large" ? "3-large ★ BEST" : "3-small · fast"}
                 </button>
               ))}
             </div>
