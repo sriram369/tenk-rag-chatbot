@@ -33,6 +33,10 @@ CHUNK_OVERLAP = 200
 EMBEDDING_MODEL = "text-embedding-3-large"
 BATCH_SIZE = 100
 EMBEDDING_MODEL_SMALL = "text-embedding-3-small"
+INDEX_NAME_LARGE = "tenk-rag"
+INDEX_NAME_SMALL = "tenk-rag-small"
+EMBEDDING_DIM_LARGE = 3072
+EMBEDDING_DIM_SMALL = 1536
 
 COMPANIES = {
     "alphabet": Path(__file__).parent.parent.parent / "10kFiles/Alpha/Alphabet 10K 2024.pdf",
@@ -110,10 +114,28 @@ def upsert_to_pinecone(chunks: list[dict], index, namespace: str):
     print(f"  Done: {namespace}")
 
 
+def get_or_create_index(pc: Pinecone, index_name: str, dimension: int):
+    existing = [idx.name for idx in pc.list_indexes()]
+    if index_name not in existing:
+        print(f"  Creating Pinecone index '{index_name}' (dim={dimension})...")
+        from pinecone import ServerlessSpec
+        pc.create_index(
+            name=index_name,
+            dimension=dimension,
+            metric="cosine",
+            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+        )
+        import time
+        time.sleep(10)  # wait for index to be ready
+        print(f"  Index '{index_name}' ready.")
+    else:
+        print(f"  Using existing index '{index_name}'.")
+    return pc.Index(index_name)
+
+
 def main():
     openrouter_key = os.getenv("OPENROUTER_API_KEY")
     pinecone_key = os.getenv("PINECONE_API_KEY")
-    index_name = os.getenv("PINECONE_INDEX_NAME", "tenk-rag")
 
     if not openrouter_key:
         print("ERROR: OPENROUTER_API_KEY not set in .env")
@@ -129,13 +151,16 @@ def main():
     )
 
     pc = Pinecone(api_key=pinecone_key)
-    index = pc.Index(index_name)
 
     model_size = sys.argv[1] if len(sys.argv) > 1 else "large"
     embedding_model = EMBEDDING_MODEL if model_size == "large" else EMBEDDING_MODEL_SMALL
     namespace_suffix = "" if model_size == "large" else "-small"
+    index_name = INDEX_NAME_LARGE if model_size == "large" else INDEX_NAME_SMALL
+    dimension = EMBEDDING_DIM_LARGE if model_size == "large" else EMBEDDING_DIM_SMALL
+    index = get_or_create_index(pc, index_name, dimension)
     print(f"\nUsing embedding model: {embedding_model} (suffix: '{namespace_suffix}')")
 
+    chunk_counts = {}
     for company, pdf_path in COMPANIES.items():
         if not pdf_path.exists():
             print(f"WARNING: {pdf_path} not found, skipping")
@@ -147,11 +172,16 @@ def main():
 
         chunks = chunk_pages(pages, company)
         print(f"  Split into {len(chunks)} chunks")
+        chunk_counts[company] = len(chunks)
 
         chunks = embed_chunks(chunks, openai_client, model=embedding_model)
         upsert_to_pinecone(chunks, index, namespace=f"{company}{namespace_suffix}")
 
     print("\nIngestion complete!")
+    print(f"Index used: {index_name}")
+    print("Chunk counts per company:")
+    for company, count in chunk_counts.items():
+        print(f"  {company}: {count} chunks")
     stats = index.describe_index_stats()
     print(f"Index stats: {stats}")
 
