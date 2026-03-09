@@ -17,6 +17,7 @@ export interface ChatResponse {
 export interface ChatRequest {
   question: string;
   companies?: string[];
+  embedding_tier?: "large" | "small";
 }
 
 export interface Message {

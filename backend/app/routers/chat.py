@@ -15,6 +15,7 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     question: str
     companies: list[str] | None = None
+    embedding_tier: str = "large"
 
 
 class AgentResponse(BaseModel):
@@ -38,7 +39,7 @@ async def chat_stream(request: ChatRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
-    context = retrieve_context(request.question, request.companies)
+    context = retrieve_context(request.question, request.companies, request.embedding_tier)
     formatted_context = format_context_for_prompt(context)
 
     if not formatted_context.strip():
@@ -63,7 +64,7 @@ async def chat(request: ChatRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
-    context = retrieve_context(request.question, request.companies)
+    context = retrieve_context(request.question, request.companies, request.embedding_tier)
     formatted_context = format_context_for_prompt(context)
 
     if not formatted_context.strip():

@@ -7,13 +7,16 @@ from openai import OpenAI
 from pinecone import Pinecone
 
 EMBEDDING_MODEL = "text-embedding-3-large"
+EMBEDDING_MODEL_SMALL = "text-embedding-3-small"
+INDEX_NAME_LARGE = "tenk-rag"
+INDEX_NAME_SMALL = "tenk-rag-small"
+NAMESPACE_SUFFIX = {"large": "", "small": "-small"}
 TOP_K = 5  # chunks per company namespace
 
 
-def _get_clients():
+def _get_clients(index_name: str = "tenk-rag"):
     api_key = os.getenv("OPENROUTER_API_KEY")
     pinecone_key = os.getenv("PINECONE_API_KEY")
-    index_name = os.getenv("PINECONE_INDEX_NAME", "tenk-rag")
 
     openai_client = OpenAI(
         api_key=api_key,
@@ -24,28 +27,32 @@ def _get_clients():
     return openai_client, index
 
 
-def embed_query(query: str, client: OpenAI) -> list[float]:
-    response = client.embeddings.create(model=EMBEDDING_MODEL, input=query)
+def embed_query(query: str, client: OpenAI, model: str = EMBEDDING_MODEL) -> list[float]:
+    response = client.embeddings.create(model=model, input=query)
     return response.data[0].embedding
 
 
-def retrieve_context(query: str, companies: list[str] | None = None) -> dict[str, list[dict]]:
+def retrieve_context(query: str, companies: list[str] | None = None, embedding_tier: str = "large") -> dict[str, list[dict]]:
     """
     Returns a dict mapping company name -> list of chunk dicts.
-    Each chunk dict: { text, company, chunk_id, page_num, score }
+    embedding_tier: "large" (text-embedding-3-large, tenk-rag) or "small" (text-embedding-3-small, tenk-rag-small)
     """
     if companies is None:
         companies = ["alphabet", "amazon", "microsoft"]
 
-    client, index = _get_clients()
-    query_embedding = embed_query(query, client)
+    model = EMBEDDING_MODEL if embedding_tier == "large" else EMBEDDING_MODEL_SMALL
+    index_name = INDEX_NAME_LARGE if embedding_tier == "large" else INDEX_NAME_SMALL
+    suffix = NAMESPACE_SUFFIX.get(embedding_tier, "")
+
+    client, index = _get_clients(index_name)
+    query_embedding = embed_query(query, client, model=model)
 
     context: dict[str, list[dict]] = {}
     for company in companies:
         results = index.query(
             vector=query_embedding,
             top_k=TOP_K,
-            namespace=company,
+            namespace=f"{company}{suffix}",
             include_metadata=True,
         )
         chunks = [

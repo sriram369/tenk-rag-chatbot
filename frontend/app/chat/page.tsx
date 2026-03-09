@@ -40,6 +40,7 @@ export default function ChatPage() {
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState<string | null>(null);
   const [selected,  setSelected]  = useState<string[]>(COMPANIES);
+  const [embeddingTier, setEmbeddingTier] = useState<"large" | "small">("large");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -66,7 +67,7 @@ export default function ChatPage() {
     };
 
     await streamChat(
-      { question, companies: selected },
+      { question, companies: selected, embedding_tier: embeddingTier },
       {
         onSources: (sources) => {
           update({ ...current, sources });
@@ -201,6 +202,24 @@ export default function ChatPage() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Embedding model toggle */}
+            <div className="flex items-center gap-2 py-2.5 pl-4">
+              <span className="text-xs text-white/40 font-mono">embeddings:</span>
+              {(["large", "small"] as const).map((tier) => (
+                <button
+                  key={tier}
+                  onClick={() => setEmbeddingTier(tier)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    embeddingTier === tier
+                      ? "bg-white/20 text-white border border-white/30"
+                      : "bg-white/5 text-white/40 hover:bg-white/10 border border-white/10"
+                  }`}
+                >
+                  {tier === "large" ? "3-large · best" : "3-small · fast"}
+                </button>
+              ))}
             </div>
 
           </div>
