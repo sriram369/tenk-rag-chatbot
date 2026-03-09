@@ -4,7 +4,7 @@ PDF ingestion script: chunks 10K PDFs and upserts embeddings to Pinecone.
 Usage:
     cd backend
     source venv/bin/activate
-    python scripts/ingest.py
+    python scripts/ingest.py [large|small]
 
 Requires .env in project root with:
     OPENROUTER_API_KEY=...
@@ -32,6 +32,7 @@ CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 EMBEDDING_MODEL = "text-embedding-3-large"
 BATCH_SIZE = 100
+EMBEDDING_MODEL_SMALL = "text-embedding-3-small"
 
 COMPANIES = {
     "alphabet": Path(__file__).parent.parent.parent / "10kFiles/Alpha/Alphabet 10K 2024.pdf",
@@ -74,14 +75,14 @@ def chunk_pages(pages: list[dict], company: str) -> list[dict]:
     return chunks
 
 
-def embed_chunks(chunks: list[dict], client: OpenAI) -> list[dict]:
+def embed_chunks(chunks: list[dict], client: OpenAI, model: str = EMBEDDING_MODEL) -> list[dict]:
     texts = [c["text"] for c in chunks]
     print(f"  Embedding {len(texts)} chunks...")
     # Process in batches to avoid token limits
     all_embeddings = []
     for i in range(0, len(texts), BATCH_SIZE):
         batch = texts[i : i + BATCH_SIZE]
-        response = client.embeddings.create(model=EMBEDDING_MODEL, input=batch)
+        response = client.embeddings.create(model=model, input=batch)
         all_embeddings.extend([e.embedding for e in response.data])
     for chunk, embedding in zip(chunks, all_embeddings):
         chunk["embedding"] = embedding
@@ -130,6 +131,11 @@ def main():
     pc = Pinecone(api_key=pinecone_key)
     index = pc.Index(index_name)
 
+    model_size = sys.argv[1] if len(sys.argv) > 1 else "large"
+    embedding_model = EMBEDDING_MODEL if model_size == "large" else EMBEDDING_MODEL_SMALL
+    namespace_suffix = "" if model_size == "large" else "-small"
+    print(f"\nUsing embedding model: {embedding_model} (suffix: '{namespace_suffix}')")
+
     for company, pdf_path in COMPANIES.items():
         if not pdf_path.exists():
             print(f"WARNING: {pdf_path} not found, skipping")
@@ -142,8 +148,8 @@ def main():
         chunks = chunk_pages(pages, company)
         print(f"  Split into {len(chunks)} chunks")
 
-        chunks = embed_chunks(chunks, openai_client)
-        upsert_to_pinecone(chunks, index, namespace=company)
+        chunks = embed_chunks(chunks, openai_client, model=embedding_model)
+        upsert_to_pinecone(chunks, index, namespace=f"{company}{namespace_suffix}")
 
     print("\nIngestion complete!")
     stats = index.describe_index_stats()
