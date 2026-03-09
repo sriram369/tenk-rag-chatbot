@@ -29,10 +29,10 @@ def embed_query(query: str, client: OpenAI) -> list[float]:
     return response.data[0].embedding
 
 
-def retrieve_context(query: str, companies: list[str] | None = None) -> dict[str, list[str]]:
+def retrieve_context(query: str, companies: list[str] | None = None) -> dict[str, list[dict]]:
     """
-    Returns a dict mapping company name -> list of relevant text chunks.
-    If companies is None, queries all three namespaces.
+    Returns a dict mapping company name -> list of chunk dicts.
+    Each chunk dict: { text, company, chunk_id, page_num, score }
     """
     if companies is None:
         companies = ["alphabet", "amazon", "microsoft"]
@@ -40,7 +40,7 @@ def retrieve_context(query: str, companies: list[str] | None = None) -> dict[str
     client, index = _get_clients()
     query_embedding = embed_query(query, client)
 
-    context: dict[str, list[str]] = {}
+    context: dict[str, list[dict]] = {}
     for company in companies:
         results = index.query(
             vector=query_embedding,
@@ -48,17 +48,51 @@ def retrieve_context(query: str, companies: list[str] | None = None) -> dict[str
             namespace=company,
             include_metadata=True,
         )
-        chunks = [match.metadata["text"] for match in results.matches if match.metadata]
+        chunks = [
+            {
+                "text": match.metadata.get("text", ""),
+                "company": match.metadata.get("company", company),
+                "chunk_id": int(match.metadata.get("chunk_id", 0)),
+                "page_num": int(match.metadata.get("page_num", 0)),
+                "score": round(float(match.score), 4),
+            }
+            for match in results.matches
+            if match.metadata
+        ]
         context[company] = chunks
 
     return context
 
 
-def format_context_for_prompt(context: dict[str, list[str]]) -> str:
-    """Formats retrieved chunks into a single string for LLM prompts."""
+def format_context_for_prompt(context: dict[str, list[dict]]) -> str:
+    """Formats retrieved chunks into a labeled string for LLM prompts."""
     sections = []
     for company, chunks in context.items():
         if chunks:
-            combined = "\n\n".join(chunks)
+            labeled = []
+            for chunk in chunks:
+                page = chunk.get("page_num", "?")
+                label = f"[{company.capitalize()} 10-K, p.{page}]"
+                labeled.append(f"{label}: {chunk['text']}")
+            combined = "\n\n".join(labeled)
             sections.append(f"=== {company.upper()} 10-K ===\n{combined}")
     return "\n\n".join(sections)
+
+
+def get_sources_list(context: dict[str, list[dict]]) -> list[dict]:
+    """Returns a flat deduplicated list of source chunks for the API response."""
+    sources = []
+    seen: set[tuple] = set()
+    for company, chunks in context.items():
+        for chunk in chunks:
+            key = (company, chunk["page_num"], chunk["chunk_id"])
+            if key not in seen:
+                seen.add(key)
+                sources.append({
+                    "company": company.capitalize(),
+                    "page_num": chunk["page_num"],
+                    "chunk_id": chunk["chunk_id"],
+                    "text": chunk["text"][:300],
+                    "score": chunk["score"],
+                })
+    return sorted(sources, key=lambda x: -x["score"])
