@@ -31,13 +31,16 @@ SECOND_JUDGE_MODEL = "meta-llama/llama-3.3-70b-instruct"
 SECOND_JUDGE_NAME  = "Llama 3.3 70B"
 
 EXPERT_SYSTEM_PROMPT = """You are a financial analyst expert specializing in analyzing SEC 10-K filings.
-You will be given relevant excerpts from 10-K annual reports and a question.
+You will be given relevant excerpts from 10-K annual reports, each labeled with their source like [Alphabet 10-K, p.47].
 Provide a precise, accurate answer citing specific numbers, figures, and facts from the documents.
-Be concise but thorough. If information is not in the provided context, say so clearly."""
+IMPORTANT: When you use information from the context, cite the source inline using the exact label format shown, e.g. [Alphabet 10-K, p.47].
+Only cite information that comes directly from the provided context. If information is not in the context, say so clearly.
+Be concise but thorough."""
 
 AUDIENCE_SYSTEM_PROMPT = """You are a member of the general public giving your opinion on a financial question.
-You have some general knowledge but are not a specialist. You will be given context from 10-K filings.
-Share your perspective briefly and conversationally. Be honest about what you do and don't understand."""
+You have some general knowledge but are not a specialist. You will be given context from 10-K filings, each labeled with their source.
+Share your perspective briefly and conversationally. If you reference something from the documents, use the source label shown, e.g. [Alphabet 10-K, p.12].
+Be honest about what you do and don't understand."""
 
 JUDGE_SYSTEM_PROMPT = """You are the Chief Financial Analyst and debate judge.
 You will receive a question and answers from 4 expert financial analysts who analyzed 10-K filings.
@@ -99,15 +102,20 @@ async def _call_judge(client: AsyncOpenAI, model: str, system_prompt: str, quest
     return response.choices[0].message.content or ""
 
 
-async def stream_debate(question: str, context: str) -> AsyncGenerator[str, None]:
+async def stream_debate(question: str, context: str, sources: list[dict] | None = None) -> AsyncGenerator[str, None]:
     """
     SSE generator: yields events as each model completes.
+    event: sources → list of source chunk dicts
     event: agent   → { type, agent, model, answer, error }
     event: judging → {}
     event: verdict → { variant, agent, answer }
     event: done    → {}
     """
     client = _get_client()
+
+    # Emit sources first so frontend can display them immediately
+    if sources:
+        yield f"event: sources\ndata: {json.dumps(sources)}\n\n"
 
     # Launch all 8 model tasks simultaneously
     expert_task_list  = [asyncio.create_task(_ask_agent(client, a, question, context, EXPERT_SYSTEM_PROMPT))  for a in AGENTS]

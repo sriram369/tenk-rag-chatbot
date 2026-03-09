@@ -6,7 +6,7 @@ import os
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../../.env"))
 
-from app.services.rag import retrieve_context, format_context_for_prompt
+from app.services.rag import retrieve_context, format_context_for_prompt, get_sources_list
 from app.services.debate import run_debate, stream_debate
 
 router = APIRouter()
@@ -35,7 +35,6 @@ class ChatResponse(BaseModel):
 
 @router.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
-    """SSE endpoint — streams agent responses as they arrive."""
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
@@ -45,8 +44,10 @@ async def chat_stream(request: ChatRequest):
     if not formatted_context.strip():
         raise HTTPException(status_code=404, detail="No relevant context found. Make sure PDFs have been ingested.")
 
+    sources = get_sources_list(context)
+
     return StreamingResponse(
-        stream_debate(request.question, formatted_context),
+        stream_debate(request.question, formatted_context, sources),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
