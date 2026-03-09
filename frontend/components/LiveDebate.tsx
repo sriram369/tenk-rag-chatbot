@@ -1,6 +1,7 @@
 "use client";
 
 import { StreamState, AgentCardState } from "@/lib/types";
+import { SourcesDrawer } from "./SourcesDrawer";
 
 const EXPERT_META = [
   { name: "GPT-4o",            org: "OpenAI",    color: "#74aa9c", short: "G4" },
@@ -245,6 +246,9 @@ export function LiveDebate({ state }: Props) {
           </div>
         </div>
       )}
+
+      {/* Sources drawer — collapsible, shown when RAG chunks are available */}
+      <SourcesDrawer sources={state.sources} />
 
     </div>
   );

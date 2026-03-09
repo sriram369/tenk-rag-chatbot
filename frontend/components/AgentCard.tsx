@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { AgentResponse } from "@/lib/types";
 
 const EXPERT_META: Record<string, { tag: string; color: string; short: string }> = {
@@ -15,6 +16,23 @@ const AUDIENCE_META: Record<string, { tag: string; color: string; short: string 
   "Qwen3 235B":    { tag: "Alibaba",  color: "#8b6db5", short: "QW" },
   "Gemma 3 27B":   { tag: "Google",   color: "#4a8a6a", short: "GE" },
 };
+
+function renderWithCitations(text: string): React.ReactNode {
+  const parts = text.split(/(\[[^\]]+10-K[^\]]*\])/g);
+  return parts.map((part, i) => {
+    if (/^\[[^\]]+10-K[^\]]*\]$/.test(part)) {
+      return (
+        <span
+          key={i}
+          className="inline-flex items-center mx-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-white/10 text-white/70 border border-white/20 align-middle"
+        >
+          {part}
+        </span>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
 
 interface Props {
   response: AgentResponse;
@@ -75,12 +93,12 @@ export function AgentCard({ response, index, isAudience = false }: Props) {
         {response.error ? (
           <p className="text-[12px] text-[#f87171] leading-relaxed">{response.error}</p>
         ) : (
-          <p
+          <div
             className="text-[13px] leading-relaxed whitespace-pre-wrap"
             style={{ color: isAudience ? "var(--text-dim)" : "var(--text-dim)" }}
           >
-            {response.answer}
-          </p>
+            {renderWithCitations(response.answer ?? "")}
+          </div>
         )}
       </div>
     </div>
