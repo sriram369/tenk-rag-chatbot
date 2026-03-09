@@ -35,6 +35,14 @@ export interface AgentCardState {
   done: boolean;
 }
 
+export interface SourceChunk {
+  company: string;
+  page_num: number;
+  chunk_id: number;
+  text: string;
+  score: number;
+}
+
 export interface StreamState {
   experts:  Record<string, AgentCardState>;
   audience: Record<string, AgentCardState>;
@@ -42,6 +50,7 @@ export interface StreamState {
     primary?:   string;
     secondary?: string;
   };
+  sources:   SourceChunk[];
   isJudging: boolean;
   isDone:    boolean;
 }

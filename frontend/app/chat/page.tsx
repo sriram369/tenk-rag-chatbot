@@ -68,6 +68,9 @@ export default function ChatPage() {
     await streamChat(
       { question, companies: selected },
       {
+        onSources: (sources) => {
+          update({ ...current, sources });
+        },
         onAgent: (type, agent, answer, err) => {
           const key = type === "expert" ? "experts" : "audience";
           update({

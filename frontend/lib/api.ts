@@ -1,4 +1,4 @@
-import { ChatRequest, ChatResponse, StreamState } from "./types";
+import { ChatRequest, ChatResponse, StreamState, SourceChunk } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -18,12 +18,13 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
 
 // ── Streaming ─────────────────────────────────────────────────────────────────
 export function emptyStreamState(): StreamState {
-  return { experts: {}, audience: {}, verdicts: {}, isJudging: false, isDone: false };
+  return { experts: {}, audience: {}, verdicts: {}, sources: [], isJudging: false, isDone: false };
 }
 
 export async function streamChat(
   request: ChatRequest,
   callbacks: {
+    onSources: (sources: SourceChunk[]) => void;
     onAgent:   (type: "expert" | "audience", agent: string, answer: string | null, error: string | null) => void;
     onJudging: () => void;
     onVerdict: (variant: "primary" | "secondary", agent: string, answer: string) => void;
@@ -72,7 +73,8 @@ export async function streamChat(
       if (!eventType) continue;
       try {
         const data = dataStr ? JSON.parse(dataStr) : {};
-        if      (eventType === "agent")   callbacks.onAgent(data.type, data.agent, data.answer, data.error);
+        if      (eventType === "sources") callbacks.onSources(data as SourceChunk[]);
+        else if (eventType === "agent")   callbacks.onAgent(data.type, data.agent, data.answer, data.error);
         else if (eventType === "judging") callbacks.onJudging();
         else if (eventType === "verdict") callbacks.onVerdict(data.variant, data.agent, data.answer);
         else if (eventType === "done")    callbacks.onDone();
