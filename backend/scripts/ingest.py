@@ -40,23 +40,38 @@ COMPANIES = {
 }
 
 
-def extract_text(pdf_path: Path) -> str:
+def extract_pages(pdf_path: Path) -> list[dict]:
+    """Returns list of {page_num, text} for each page."""
     print(f"  Reading {pdf_path.name}...")
     reader = PdfReader(pdf_path)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text() or ""
-    return text
+    pages = []
+    for i, page in enumerate(reader.pages):
+        text = page.extract_text() or ""
+        if text.strip():
+            pages.append({"page_num": i + 1, "text": text})
+    return pages
 
 
-def chunk_text(text: str, company: str) -> list[dict]:
+def chunk_pages(pages: list[dict], company: str) -> list[dict]:
+    """Chunks text while tracking which page each chunk came from."""
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=CHUNK_SIZE,
         chunk_overlap=CHUNK_OVERLAP,
         separators=["\n\n", "\n", ". ", " ", ""],
     )
-    chunks = splitter.split_text(text)
-    return [{"text": chunk, "company": company, "chunk_id": i} for i, chunk in enumerate(chunks)]
+    chunks = []
+    chunk_id = 0
+    for page in pages:
+        page_chunks = splitter.split_text(page["text"])
+        for chunk_text in page_chunks:
+            chunks.append({
+                "text": chunk_text,
+                "company": company,
+                "chunk_id": chunk_id,
+                "page_num": page["page_num"],
+            })
+            chunk_id += 1
+    return chunks
 
 
 def embed_chunks(chunks: list[dict], client: OpenAI) -> list[dict]:
@@ -82,6 +97,7 @@ def upsert_to_pinecone(chunks: list[dict], index, namespace: str):
                 "text": c["text"],
                 "company": c["company"],
                 "chunk_id": c["chunk_id"],
+                "page_num": c["page_num"],
             },
         }
         for c in chunks
@@ -120,10 +136,10 @@ def main():
             continue
 
         print(f"\nProcessing {company.upper()}...")
-        text = extract_text(pdf_path)
-        print(f"  Extracted {len(text):,} characters")
+        pages = extract_pages(pdf_path)
+        print(f"  Extracted {len(pages)} pages")
 
-        chunks = chunk_text(text, company)
+        chunks = chunk_pages(pages, company)
         print(f"  Split into {len(chunks)} chunks")
 
         chunks = embed_chunks(chunks, openai_client)
