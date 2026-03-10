@@ -1,7 +1,85 @@
 "use client";
 
-import { StreamState, AgentCardState } from "@/lib/types";
+import React from "react";
+import { StreamState, AgentCardState, SourceChunk } from "@/lib/types";
 import { SourcesDrawer } from "./SourcesDrawer";
+
+const COMPANY_COLORS: Record<string, string> = {
+  Alphabet:  "#4ade80",
+  Amazon:    "#fb923c",
+  Microsoft: "#60a5fa",
+};
+
+function parseCitation(badge: string): { company: string; page: number } | null {
+  const m = badge.match(/\[([A-Za-z]+)\s+10-K,\s*p\.(\d+)\]/);
+  if (!m) return null;
+  return { company: m[1], page: parseInt(m[2], 10) };
+}
+
+function CitationBadge({ part, sources }: { part: string; sources: SourceChunk[] }) {
+  const [visible, setVisible] = React.useState(false);
+  const parsed = parseCitation(part);
+  const source = parsed
+    ? sources.find(s => s.company === parsed.company && s.page_num === parsed.page) ?? null
+    : null;
+  const color = parsed ? (COMPANY_COLORS[parsed.company] ?? "#aaa") : "#aaa";
+
+  return (
+    <span className="relative inline-flex align-middle mx-0.5">
+      <span
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border cursor-help transition-colors duration-150"
+        style={{
+          background:  `${color}18`,
+          color,
+          borderColor: `${color}55`,
+        }}
+      >
+        {part}
+      </span>
+
+      {visible && (
+        <span
+          className="absolute z-50 bottom-full left-0 mb-2 w-72 rounded-lg border shadow-2xl text-left pointer-events-none"
+          style={{
+            background:  "#0e1828",
+            borderColor: `${color}44`,
+            boxShadow:   `0 0 24px ${color}22`,
+          }}
+        >
+          <span className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: `${color}33` }}>
+            <span
+              className="text-[10px] font-bold px-1.5 py-0.5 rounded border"
+              style={{ color, borderColor: `${color}55`, background: `${color}18` }}
+            >
+              {parsed?.company} 10-K
+            </span>
+            <span className="text-[10px] text-white/50">Page {parsed?.page}</span>
+            {source && (
+              <span className="ml-auto text-[10px] text-white/30">score: {source.score}</span>
+            )}
+          </span>
+          <span className="block px-3 py-2 text-[11px] text-white/70 leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>
+            {source
+              ? source.text
+              : "Source text not available in retrieved chunks for this page."}
+          </span>
+        </span>
+      )}
+    </span>
+  );
+}
+
+function renderWithCitations(text: string, sources: SourceChunk[]): React.ReactNode {
+  const parts = text.split(/(\[[^\]]+10-K[^\]]*\])/g);
+  return parts.map((part, i) => {
+    if (/^\[[^\]]+10-K[^\]]*\]$/.test(part)) {
+      return <CitationBadge key={i} part={part} sources={sources} />;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
 
 const EXPERT_META = [
   { name: "GPT-4o",            org: "OpenAI",    color: "#74aa9c", short: "G4" },
@@ -19,10 +97,10 @@ const AUDIENCE_META = [
 
 // ── Model tile ────────────────────────────────────────────────────────────────
 function ModelTile({
-  name, org, color, short, state, isAudience = false,
+  name, org, color, short, state, isAudience = false, sources = [],
 }: {
   name: string; org: string; color: string; short: string;
-  state?: AgentCardState; isAudience?: boolean;
+  state?: AgentCardState; isAudience?: boolean; sources?: SourceChunk[];
 }) {
   const done    = state?.done ?? false;
   const waiting = !done;
@@ -81,7 +159,9 @@ function ModelTile({
         {state?.error ? (
           <p className="text-[11px] text-[#f87171] leading-relaxed">{state.error}</p>
         ) : done && state?.answer ? (
-          <p className="text-[12px] leading-relaxed text-[var(--text-dim)]">{state.answer}</p>
+          <p className="text-[12px] leading-relaxed text-[var(--text-dim)]">
+            {renderWithCitations(state.answer, sources)}
+          </p>
         ) : (
           <div className="flex items-center gap-2 mt-1">
             <div className="w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0" style={{ background: color }} />
@@ -211,7 +291,7 @@ export function LiveDebate({ state }: Props) {
         <SectionHead label="Expert Panel" note="Both judges read these" amber />
         <div className="grid grid-cols-2 gap-3">
           {EXPERT_META.map((m) => (
-            <ModelTile key={m.name} {...m} state={state.experts[m.name]} />
+            <ModelTile key={m.name} {...m} state={state.experts[m.name]} sources={state.sources} />
           ))}
         </div>
       </div>
@@ -221,7 +301,7 @@ export function LiveDebate({ state }: Props) {
         <SectionHead label="General Audience" note="Judges ignore these" />
         <div className="grid grid-cols-2 gap-3">
           {AUDIENCE_META.map((m) => (
-            <ModelTile key={m.name} {...m} state={state.audience[m.name]} isAudience />
+            <ModelTile key={m.name} {...m} state={state.audience[m.name]} isAudience sources={state.sources} />
           ))}
         </div>
       </div>
